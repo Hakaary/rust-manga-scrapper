@@ -1,6 +1,6 @@
 use clap::Parser;
 use reqwest;
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, collections::HashMap};
 use thirtyfour::prelude::{By, DesiredCapabilities, WebDriver, WebDriverResult};
 use tokio::{fs, io::AsyncWriteExt, task};
 
@@ -15,8 +15,8 @@ async fn gen_manga_chapters(
     chapters: RangeInclusive<u32>,
     manga_name: &str,
     manga_url: &str,
-) -> Result<Vec<tokio::task::JoinHandle<()>>, reqwest::Error> {
-    let mut f_write_imgs = Vec::new();
+) -> Result<HashMap<u32, tokio::task::JoinHandle<()>>, reqwest::Error> {
+    let mut f_write_imgs = HashMap::new();
 
     for chapter in chapters {
         driver
@@ -50,7 +50,7 @@ async fn gen_manga_chapters(
                     let b_img = img.await.unwrap().bytes().await.unwrap();
                     img_file.write_all(&b_img).await.unwrap();
                 });
-                f_write_imgs.push(task);
+                f_write_imgs.insert(chapter, task);
             }
 
             // Click to go to next page
@@ -95,9 +95,12 @@ async fn main() -> WebDriverResult<()> {
     let chapters: RangeInclusive<u32>;
     if args.number != 0 {
         chapters = args.number..=args.number;
+        println!("Downloading chapter {}", args.number);
     } else {
         chapters = args.from..=args.to;
+        println!("Downloading chapter from {} to {}", args.from, args.to);
     }
+    println!();
 
     // Create the folder for the manga
     create_main_folder(manga_name).await.unwrap();
@@ -110,10 +113,12 @@ async fn main() -> WebDriverResult<()> {
         let f_write_imgs = gen_manga_chapters(driver.clone(), chapters, manga_name, manga_url)
             .await
             .unwrap();
-        for f_write_img in f_write_imgs {
+        for (cha, f_write_img) in f_write_imgs {
             f_write_img.await.unwrap();
+            println!("Chapter {} downloaded", cha);
         }
         driver.quit().await?;
+        println!();
         println!("Manga '{}' downloaded!", manga_name);
     } else {
         println!("No driver (chromedriver) found. Make sure it is installed and running.");
