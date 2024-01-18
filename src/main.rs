@@ -1,6 +1,6 @@
 use clap::Parser;
 use reqwest;
-use std::{ops::RangeInclusive, collections::HashMap};
+use std::{collections::HashMap, ops::RangeInclusive};
 use thirtyfour::prelude::{By, DesiredCapabilities, WebDriver, WebDriverResult};
 use tokio::{fs, io::AsyncWriteExt, task};
 
@@ -26,7 +26,8 @@ async fn gen_manga_chapters(
 
         let mut current_page: u8 = 1;
 
-        // Create the folder for the chapter
+        // Create the folder for the chapter if it doesn't exist
+        // If exists, continue. That chapter has already been downloaded.
         if let Err(()) = create_chapter_folder(manga_name, chapter).await {
             continue;
         }
@@ -102,7 +103,7 @@ async fn main() -> WebDriverResult<()> {
     }
     println!();
 
-    // Create the folder for the manga
+    // Create the folder for the manga if it doesn't exist
     create_main_folder(manga_name).await.unwrap();
 
     let mut caps = DesiredCapabilities::chrome();
