@@ -1,6 +1,7 @@
 use clap::Parser;
+use futures::future::try_join_all;
 use reqwest;
-use std::{collections::HashMap, ops::RangeInclusive};
+use std::{ops::RangeInclusive, process::{exit, Command, Stdio}};
 use thirtyfour::prelude::{By, DesiredCapabilities, WebDriver, WebDriverResult};
 use tokio::{fs, io::AsyncWriteExt, task};
 
@@ -13,10 +14,10 @@ use folders::{create_chapter_folder, create_main_folder};
 async fn gen_manga_chapters(
     driver: WebDriver,
     chapters: RangeInclusive<u32>,
-    manga_name: &str,
-    manga_url: &str,
-) -> Result<HashMap<u32, tokio::task::JoinHandle<()>>, reqwest::Error> {
-    let mut f_write_imgs = HashMap::new();
+    manga_name: String,
+    manga_url: String,
+) -> Result<Vec<tokio::task::JoinHandle<()>>, reqwest::Error> {
+    let mut f_write_imgs = Vec::new();
 
     for chapter in chapters {
         driver
@@ -28,7 +29,7 @@ async fn gen_manga_chapters(
 
         // Create the folder for the chapter if it doesn't exist
         // If exists, continue. That chapter has already been downloaded.
-        if let Err(()) = create_chapter_folder(manga_name, chapter).await {
+        if let Err(()) = create_chapter_folder(manga_name.clone().as_str(), chapter).await {
             continue;
         }
 
@@ -51,7 +52,8 @@ async fn gen_manga_chapters(
                     let b_img = img.await.unwrap().bytes().await.unwrap();
                     img_file.write_all(&b_img).await.unwrap();
                 });
-                f_write_imgs.insert(chapter, task);
+                // f_write_imgs.insert(chapter, task);
+                f_write_imgs.push(task);
             }
 
             // Click to go to next page
@@ -88,10 +90,20 @@ async fn gen_manga_chapters(
 async fn main() -> WebDriverResult<()> {
     // Arguments
     let args = Args::parse();
+    
+    let chr_driver = Command::new("chromedriver").stdout(Stdio::null()).spawn();
+
+    if let Err(e) = chr_driver {
+        eprintln!("Chromedriver not found. Error: {}", e);
+        exit(1);
+    }
 
     // Download process
-    let manga_name = "One Piece";
-    let manga_url = "https://www.leercapitulo.com/leer/5pljav/one-piece/";
+    // let manga_name = "One Piece";
+    let manga_url = format!("https://www.leercapitulo.com/leer/abcdef/{}/", {
+        let manga_name = args.manga.to_lowercase();
+        manga_name.replace(" ", "-")
+    });
 
     let chapters: RangeInclusive<u32>;
     if args.number != 0 {
@@ -101,28 +113,30 @@ async fn main() -> WebDriverResult<()> {
         chapters = args.from..=args.to;
         println!("Downloading chapter from {} to {}", args.from, args.to);
     }
-    println!();
 
     // Create the folder for the manga if it doesn't exist
-    create_main_folder(manga_name).await.unwrap();
+    create_main_folder(args.manga.clone().as_str())
+        .await
+        .unwrap();
 
     let mut caps = DesiredCapabilities::chrome();
     caps.add_chrome_arg("--enable-automation")?;
     caps.set_headless()?;
 
     if let Ok(driver) = WebDriver::new("http://localhost:9515", caps.clone()).await {
-        let f_write_imgs = gen_manga_chapters(driver.clone(), chapters, manga_name, manga_url)
-            .await
-            .unwrap();
-        for (cha, f_write_img) in f_write_imgs {
-            f_write_img.await.unwrap();
-            println!("Chapter {} downloaded", cha);
-        }
+        let f_write_imgs = gen_manga_chapters(
+            driver.clone(),
+            chapters,
+            args.manga.clone(),
+            manga_url,
+        )
+        .await
+        .unwrap();
+        try_join_all(f_write_imgs.into_iter()).await.unwrap();
         driver.quit().await?;
-        println!();
-        println!("Manga '{}' downloaded!", manga_name);
+        println!("Manga '{}' downloaded!", args.manga.clone().as_str());
     } else {
-        println!("No driver (chromedriver) found. Make sure it is installed and running.");
+        println!("Make sure chromedriver and Chrome is installed and running.");
     }
 
     Ok(())

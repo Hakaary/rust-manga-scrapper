@@ -3,6 +3,9 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    #[arg(short, long)]
+    pub manga: String,
+
     #[arg(short, long, default_value_t = 0)]
     pub from: u32,
 
