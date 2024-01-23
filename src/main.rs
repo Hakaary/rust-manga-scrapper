@@ -1,7 +1,10 @@
 use clap::Parser;
 use futures::future::try_join_all;
 use reqwest;
-use std::{ops::RangeInclusive, process::{exit, Command, Stdio}};
+use std::{
+    ops::RangeInclusive,
+    process::{exit, Command, Stdio},
+};
 use thirtyfour::prelude::{By, DesiredCapabilities, WebDriver, WebDriverResult};
 use tokio::{fs, io::AsyncWriteExt, task};
 
@@ -20,6 +23,13 @@ async fn gen_manga_chapters(
     let mut f_write_imgs = Vec::new();
 
     for chapter in chapters {
+        // Create the folder for the chapter if it doesn't exist
+        // If exists, continue. That chapter is assumed to be a chapter
+        // that is already downloaded.
+        if let Err(()) = create_chapter_folder(manga_name.clone().as_str(), chapter).await {
+            continue;
+        }
+
         driver
             .goto(format!("{}{}/#1", manga_url, chapter,))
             .await
@@ -27,11 +37,7 @@ async fn gen_manga_chapters(
 
         let mut current_page: u8 = 1;
 
-        // Create the folder for the chapter if it doesn't exist
-        // If exists, continue. That chapter has already been downloaded.
-        if let Err(()) = create_chapter_folder(manga_name.clone().as_str(), chapter).await {
-            continue;
-        }
+        print!("Downloading chapter {}... ", chapter);
 
         loop {
             // Download page
@@ -52,7 +58,6 @@ async fn gen_manga_chapters(
                     let b_img = img.await.unwrap().bytes().await.unwrap();
                     img_file.write_all(&b_img).await.unwrap();
                 });
-                // f_write_imgs.insert(chapter, task);
                 f_write_imgs.push(task);
             }
 
@@ -73,7 +78,8 @@ async fn gen_manga_chapters(
             // Check if last page
             if let Some(url_current_page) = driver.current_url().await.unwrap().fragment() {
                 if let Ok(url_current_page) = url_current_page.parse::<u8>() {
-                    if current_page == url_current_page {
+                    if current_page >= url_current_page {
+                        println!("{} pages", current_page);
                         break;
                     } else {
                         current_page = url_current_page;
@@ -90,7 +96,7 @@ async fn gen_manga_chapters(
 async fn main() -> WebDriverResult<()> {
     // Arguments
     let args = Args::parse();
-    
+
     let chr_driver = Command::new("chromedriver").stdout(Stdio::null()).spawn();
 
     if let Err(e) = chr_driver {
@@ -99,7 +105,6 @@ async fn main() -> WebDriverResult<()> {
     }
 
     // Download process
-    // let manga_name = "One Piece";
     let manga_url = format!("https://www.leercapitulo.com/leer/abcdef/{}/", {
         let manga_name = args.manga.to_lowercase();
         manga_name.replace(" ", "-")
@@ -108,10 +113,13 @@ async fn main() -> WebDriverResult<()> {
     let chapters: RangeInclusive<u32>;
     if args.number != 0 {
         chapters = args.number..=args.number;
-        println!("Downloading chapter {}", args.number);
+        println!("Downloading '{}' chapter {}", args.manga, args.number);
     } else {
         chapters = args.from..=args.to;
-        println!("Downloading chapter from {} to {}", args.from, args.to);
+        println!(
+            "Downloading '{}' chapters from {} to {}",
+            args.manga, args.from, args.to
+        );
     }
 
     // Create the folder for the manga if it doesn't exist
@@ -124,19 +132,15 @@ async fn main() -> WebDriverResult<()> {
     caps.set_headless()?;
 
     if let Ok(driver) = WebDriver::new("http://localhost:9515", caps.clone()).await {
-        let f_write_imgs = gen_manga_chapters(
-            driver.clone(),
-            chapters,
-            args.manga.clone(),
-            manga_url,
-        )
-        .await
-        .unwrap();
+        let f_write_imgs =
+            gen_manga_chapters(driver.clone(), chapters, args.manga.clone(), manga_url)
+                .await
+                .unwrap();
         try_join_all(f_write_imgs.into_iter()).await.unwrap();
         driver.quit().await?;
-        println!("Manga '{}' downloaded!", args.manga.clone().as_str());
+        println!("Chapter/s downloaded!");
     } else {
-        println!("Make sure chromedriver and Chrome is installed and running.");
+        println!("Make sure chromedriver (port 9515) and Chrome is installed and running.");
     }
 
     Ok(())
