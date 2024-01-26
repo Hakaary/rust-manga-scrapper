@@ -2,7 +2,7 @@
 # Rust Manga Scrapper
 
 ## Description
-This program allows you to scrap manga chapters from [leercapitulo.com](https://www.leercapitulo.com/) in a simple and automated way. It uses Selenium to control a Chrome browser and Reqwest to download chapter images.
+This program allows you to scrap manga chapters from [leercapitulo.com](https://www.leercapitulo.com/) (spanish only :D) in a simple and automated way. It uses Selenium to control a Chrome browser and Reqwest to download chapter images.
 
 ## Requirements
 - [Chromedriver](https://sites.google.com/chromium.org/driver/) installed and in the PATH.
