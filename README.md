@@ -13,8 +13,20 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
 1. Clone this repository:
    ```
    git clone https://github.com/Hakaary/rust_manga_scrapper.git
+   ```
+   
+2. Build the binary:
+   ```
    cd MangaDownloader
    cargo build --release
+   ```
+
+3. Location:
+
+   The binary will be located here:
+   
+   ```
+   target/release/manga_downloader
    ```
 
 ## Usage
