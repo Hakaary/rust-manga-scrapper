@@ -17,7 +17,7 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
    
 2. Build the binary:
    ```
-   cd MangaDownloader
+   cd rust_manga_scrapper
    cargo build --release
    ```
 
