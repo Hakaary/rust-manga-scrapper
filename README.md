@@ -31,6 +31,13 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
 
 ## Usage
 
+###Arguments
+
+--manga: The name of the manga you want to download.
+--from: The number of the first chapter to download.
+--to: The number of the last chapter to download.
+--number: Download a specific chapter.
+
 Run the program from the command line, providing the necessary arguments. For example, assuming the binary is this path:
 
 ```
