@@ -19,7 +19,7 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
 
 ## Usage
 
-Run the program from the command line, providing the necessary arguments. For example, suposing the binary is this path:
+Run the program from the command line, providing the necessary arguments. For example, assuming the binary is this path:
 
 ```
 ./target/release/manga_downloader --manga "Fullmetal Alchemist" --from 1 --to 5
