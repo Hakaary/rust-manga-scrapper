@@ -12,7 +12,7 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
 ## Installation
 1. Clone this repository:
    ```
-   git clone https://github.com/Hakaary/Rust-Manga-Scrapper.git
+   https://github.com/Hakaary/rust-manga-scrapper.git
    ```
    
 2. Build the binary:
