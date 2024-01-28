@@ -56,4 +56,14 @@ Run the program from the command line, providing the necessary arguments. For ex
 
 ![Screenshot](read_imgs/example_2.png)
 
+## Software development process
+
+### First approach
+
+The first approach was to make everything linear and sequential, easy. At first, the program just scrapped the images one by one, including the dowloand and save on memory task. The were no advantages of using Tokio, because any of its asynchronous functionalities were really being used.
+
+### Current approach
+
+After the program was already working, a minimal refactor of the code took all of those asynchronous tasks and allow to paralelize many tasks: downloand all pages of a chapter at once and save them on memory. With that done, the time per chapter lowered from almost a minute by chapter to less than 2 seconds.
+
 
