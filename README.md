@@ -41,6 +41,8 @@ This program allows you to scrap manga chapters from [leercapitulo.com](https://
 
 `--number` or `-n`: Download only a specific chapter.
 
+`--port-chromedriver` or `-p`: Select specific port for the chromedriver. (9515 by default)
+
 
 Run the program from the command line, providing the necessary arguments. For example, assuming the binary is this path:
 
