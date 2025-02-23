@@ -131,7 +131,7 @@ async fn main() -> WebDriverResult<()> {
     caps.add_chrome_arg("--enable-automation")?;
     caps.set_headless()?;
 
-    if let Ok(driver) = WebDriver::new("http://localhost:9515", caps.clone()).await {
+    if let Ok(driver) = WebDriver::new(&format!("http://localhost:{}", args.port_chromedriver).to_string(), caps.clone()).await {
         let f_write_imgs =
             gen_manga_chapters(driver.clone(), chapters, args.manga.clone(), manga_url)
                 .await
@@ -140,7 +140,7 @@ async fn main() -> WebDriverResult<()> {
         driver.quit().await?;
         println!("Chapter/s downloaded!");
     } else {
-        println!("Make sure chromedriver (port 9515) and Chrome is installed and running.");
+        println!("{}", &format!("Make sure chromedriver (port {}) and Chrome is installed and running.", args.port_chromedriver).to_string());
     }
 
     Ok(())
